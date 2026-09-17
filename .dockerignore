@@ -1,0 +1,22 @@
+# Build artefacts and environments — recreated inside the image
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/dist/
+
+# Mounted at runtime, not baked into the image
+data/
+images_embedded/
+
+# Not needed to run
+.git/
+.gitignore
+legacy/
+.DS_Store
+**/.DS_Store
+.env
+run.sh
+run.cmd
+README.md
