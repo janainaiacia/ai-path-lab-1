@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    # GEMINI_API_KEY lives here. Never copied into the image — the .env file
+    # is in .dockerignore and read at run time instead.
+    env_file:
+      - .env
+    volumes:
+      # Read-only: the app only ever serves these, never writes them.
+      - ./data:/app/data:ro
+      - ./images_embedded:/app/images_embedded:ro
+    restart: unless-stopped
+
+  # One-off index builder. Not started by `docker compose up` — it sits behind
+  # a profile, so you run it deliberately:
+  #   docker compose --profile tools run --rm build-index --limit 500
+  # images_embedded/ is writable here, unlike in the app service.
+  build-index:
+    build: .
+    profiles:
+      - tools
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data:ro
+      - ./images_embedded:/app/images_embedded
+    entrypoint: ["python", "-m", "scripts.build_index"]

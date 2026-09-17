@@ -1,6 +1,7 @@
 google-genai
 pillow
 numpy
-streamlit
 tqdm
 python-dotenv
+fastapi
+uvicorn

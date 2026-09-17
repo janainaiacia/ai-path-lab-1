@@ -1,0 +1,44 @@
+# Development overlay — live reload inside Docker.
+#
+#   ./run.sh dev      backend on :8000, frontend with hot reload on :5173
+#
+# Applied on top of docker-compose.yml, never instead of it. Source is
+# bind-mounted rather than copied, so a save on the host is immediately visible
+# inside the container.
+services:
+  app:
+    volumes:
+      - ./data:/app/data:ro
+      - ./images_embedded:/app/images_embedded:ro
+      # Mounted over the copies baked into the image, so edits take effect
+      # without a rebuild.
+      - ./image_search:/app/image_search
+      - ./scripts:/app/scripts
+      - ./main.py:/app/main.py
+    environment:
+      # Bind mounts on macOS and Windows don't reliably deliver inotify events
+      # to the Linux VM, so the file watcher polls instead. Slightly more CPU,
+      # but it actually fires — without it reloads silently never happen.
+      WATCHFILES_FORCE_POLLING: "true"
+    command:
+      ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app/frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app/frontend
+      # Anonymous volume: keeps the container's own node_modules and stops the
+      # host's from shadowing it. They can't be shared — esbuild and rollup
+      # ship platform-native binaries, and the host's are built for macOS.
+      - /app/frontend/node_modules
+    environment:
+      # "localhost" inside this container is the container itself; the API is
+      # the sibling service, addressed by its compose name.
+      VITE_API_TARGET: http://app:8000
+      CHOKIDAR_USEPOLLING: "true"
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - app
